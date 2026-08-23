@@ -9,21 +9,18 @@
 <body class="bg-gray-100 min-h-screen p-4 md:p-8">
 
   <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
+    <!-- Header Aplikasi -->
     <div class="flex flex-col md:flex-row justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-gray-800 text-center md:text-left mb-4 md:mb-0">🎁 Monitoring Pembagian Hadiah</h1>
       <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition">
-        ➕ Tambah Penerima
+        ➕ Tambah Penerima Masal
       </button>
     </div>
 
-    <!-- Form Tambah Penerima (Secara default tersembunyi) -->
+    <!-- Form Tambah Penerima Masal -->
     <div id="formTambah" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-      <h2 class="text-lg font-bold text-blue-800 mb-3">Form Input Penerima Baru</h2>
-      <form onsubmit="tambahPenerima(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nama Penerima</label>
-          <input type="text" id="inputNama" required placeholder="Contoh: Budi Santoso" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
+      <h2 class="text-lg font-bold text-blue-800 mb-3">Form Input Penerima Masal</h2>
+      <form onsubmit="tambahPenerimaMasal(event)" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nama Desa</label>
           <input type="text" id="inputDesa" required placeholder="Contoh: Sukamaju" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
@@ -32,9 +29,14 @@
           <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">RT / RW</label>
           <input type="text" id="inputRT" required placeholder="Contoh: RT 01" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
         </div>
-        <div class="md:col-span-3 flex justify-end gap-2 mt-2">
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Daftar Nama Penerima (Satu nama per baris)</label>
+          <textarea id="inputNamaMasal" rows="5" required placeholder="Budi Santoso&#10;Siti Rahma&#10;Ahmad Supardi&#10;Dedi Kurniawan" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+          <span class="text-xs text-gray-500">*Tekan Enter untuk memisahkan antar nama penerima.</span>
+        </div>
+        <div class="md:col-span-2 flex justify-end gap-2 mt-2">
           <button type="button" onclick="toggleForm()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md font-semibold text-sm">Batal</button>
-          <button type="submit" id="btnSimpan" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-semibold text-sm">Simpan Data</button>
+          <button type="submit" id="btnSimpan" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-semibold text-sm">Simpan Semua Data</button>
         </div>
       </form>
     </div>
@@ -55,10 +57,10 @@
       </div>
     </div>
 
-    <!-- Indicator Loading -->
+    <!-- Status Loading -->
     <div id="loading" class="text-center py-4 text-gray-500 font-semibold">Memuat Data Database...</div>
 
-    <!-- Daftar Penerima -->
+    <!-- Tabel Daftar Penerima -->
     <div class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
         <thead>
@@ -70,14 +72,13 @@
           </tr>
         </thead>
         <tbody id="penerimaTableBody">
-          <!-- Data diisi oleh JS -->
+          <!-- Data dari Spreadsheet -->
         </tbody>
       </table>
     </div>
   </div>
 
   <script>
-    // URL API GOOGLE APPS SCRIPT ANDA
     const API_URL = "https://script.google.com/macros/s/AKfycbyVquBMWxrAEFN_tiDjFr1_Jhd8yvloAe7RrdtyCqX-gvTf5OXyUMnN0UgxI0FnvBMJ/exec"; 
     
     let dbData = [];
@@ -91,7 +92,7 @@
         populateDropdowns();
         filterData();
       } catch (err) {
-        alert("Gagal memuat data dari Spreadsheet");
+        alert("Gagal memuat data dari Spreadsheet. Pastikan Spreadsheet terhubung dengan benar.");
       } finally {
         document.getElementById('loading').classList.add('hidden');
       }
@@ -180,51 +181,66 @@
           body: JSON.stringify({ action: "update", id: id, status: newStatus })
         });
       } catch (err) {
-        alert("Gagal memperbarui status ke server!");
+        alert("Gagal memperbarui status ke database!");
       }
     }
 
-    async function tambahPenerima(event) {
+    // Fungsi Tambah Penerima Masal
+    async function tambahPenerimaMasal(event) {
       event.preventDefault();
       
       const btnSimpan = document.getElementById('btnSimpan');
-      btnSimpan.innerText = "Menyimpan...";
+      btnSimpan.innerText = "Menyimpan Data Masal...";
       btnSimpan.disabled = true;
 
-      const nama = document.getElementById('inputNama').value;
-      const desa = document.getElementById('inputDesa').value;
-      const rt = document.getElementById('inputRT').value;
-      const id = new Date().getTime();
+      const desa = document.getElementById('inputDesa').value.trim();
+      const rt = document.getElementById('inputRT').value.trim();
+      const namaMasalText = document.getElementById('inputNamaMasal').value;
 
-      const newItem = { id: id, desa: desa, rt: rt, nama: nama, status: "Belum" };
+      // Memecah teks textarea berdasarkan baris (enter) dan membuang baris kosong
+      const daftarNama = namaMasalText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
 
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "add", ...newItem })
-        });
-
-        dbData.push(newItem);
-        populateDropdowns();
-        filterData();
-
-        // Reset form
-        document.getElementById('inputNama').value = "";
-        document.getElementById('inputDesa').value = "";
-        document.getElementById('inputRT').value = "";
-        toggleForm();
-        alert("Penerima berhasil ditambahkan!");
-      } catch (err) {
-        alert("Gagal menambah data!");
-      } finally {
-        btnSimpan.innerText = "Simpan Data";
+      if (daftarNama.length === 0) {
+        alert("Masukkan minimal satu nama penerima!");
+        btnSimpan.innerText = "Simpan Semua Data";
         btnSimpan.disabled = false;
+        return;
       }
+
+      // Kirim setiap nama ke database
+      for (let i = 0; i < daftarNama.length; i++) {
+        const nama = daftarNama[i];
+        const id = new Date().getTime() + i; // Memastikan ID unik tiap nama
+        const newItem = { id: id, desa: desa, rt: rt, nama: nama, status: "Belum" };
+
+        try {
+          await fetch(API_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "add", ...newItem })
+          });
+
+          dbData.push(newItem);
+        } catch (err) {
+          console.error("Gagal menyimpan:", nama);
+        }
+      }
+
+      populateDropdowns();
+      filterData();
+
+      // Reset form
+      document.getElementById('inputNamaMasal').value = "";
+      document.getElementById('inputDesa').value = "";
+      document.getElementById('inputRT').value = "";
+      toggleForm();
+      
+      alert(`Berhasil menambahkan ${daftarNama.length} penerima hadiah!`);
+      btnSimpan.innerText = "Simpan Semua Data";
+      btnSimpan.disabled = false;
     }
 
-    // Muat data saat halaman dibuka
     loadData();
   </script>
 </body>
