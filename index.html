@@ -8,7 +8,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen p-4 md:p-8">
 
-  <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
+  <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-md p-6">
     <!-- Header Aplikasi -->
     <div class="flex flex-col md:flex-row justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-gray-800 text-center md:text-left mb-4 md:mb-0">🎁 Monitoring Pembagian Hadiah</h1>
@@ -31,7 +31,7 @@
         </div>
         <div class="md:col-span-2">
           <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Daftar Nama Penerima (Satu nama per baris)</label>
-          <textarea id="inputNamaMasal" rows="5" required placeholder="Budi Santoso&#10;Siti Rahma&#10;Ahmad Supardi&#10;Dedi Kurniawan" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+          <textarea id="inputNamaMasal" rows="4" required placeholder="Budi Santoso&#10;Siti Rahma&#10;Ahmad Supardi" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
           <span class="text-xs text-gray-500">*Tekan Enter untuk memisahkan antar nama penerima.</span>
         </div>
         <div class="md:col-span-2 flex justify-end gap-2 mt-2">
@@ -69,16 +69,44 @@
             <th class="p-3">Desa</th>
             <th class="p-3">RT</th>
             <th class="p-3 text-center">Status Aksi</th>
+            <th class="p-3 text-center">Kelola</th>
           </tr>
         </thead>
         <tbody id="penerimaTableBody">
-          <!-- Data dari Spreadsheet -->
+          <!-- Data dari Spreadsheet akan ditampilkan di sini -->
         </tbody>
       </table>
     </div>
   </div>
 
+  <!-- Modal Edit Data -->
+  <div id="modalEdit" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">Edit Data Penerima</h2>
+      <input type="hidden" id="editId">
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nama Penerima</label>
+          <input type="text" id="editNama" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nama Desa</label>
+          <input type="text" id="editDesa" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">RT / RW</label>
+          <input type="text" id="editRT" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button onclick="closeModalEdit()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md font-semibold text-sm">Batal</button>
+        <button onclick="simpanEdit()" id="btnSimpanEdit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold text-sm">Simpan Perubahan</button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // URL API Google Apps Script milik Anda sudah otomatis terpasang di sini
     const API_URL = "https://script.google.com/macros/s/AKfycbyVquBMWxrAEFN_tiDjFr1_Jhd8yvloAe7RrdtyCqX-gvTf5OXyUMnN0UgxI0FnvBMJ/exec"; 
     
     let dbData = [];
@@ -140,7 +168,7 @@
       tbody.innerHTML = "";
 
       if(data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500">Data tidak ditemukan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">Data tidak ditemukan.</td></tr>`;
         return;
       }
 
@@ -161,6 +189,12 @@
                 </span>
               </label>
             </td>
+            <td class="p-3 text-center">
+              <div class="flex justify-center gap-2">
+                <button onclick="openModalEdit(${item.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs px-2.5 py-1.5 rounded transition">✏️ Edit</button>
+                <button onclick="hapusPenerima(${item.id}, '${item.nama}')" class="bg-red-600 hover:bg-red-700 text-white text-xs px-2.5 py-1.5 rounded transition">🗑️ Hapus</button>
+              </div>
+            </td>
           </tr>
         `;
       });
@@ -168,7 +202,6 @@
 
     async function updateStatus(id, checked) {
       const newStatus = checked ? "Sudah" : "Belum";
-      
       const index = dbData.findIndex(item => item.id == id);
       if(index !== -1) dbData[index].status = newStatus;
       filterData();
@@ -185,7 +218,6 @@
       }
     }
 
-    // Fungsi Tambah Penerima Masal
     async function tambahPenerimaMasal(event) {
       event.preventDefault();
       
@@ -197,7 +229,6 @@
       const rt = document.getElementById('inputRT').value.trim();
       const namaMasalText = document.getElementById('inputNamaMasal').value;
 
-      // Memecah teks textarea berdasarkan baris (enter) dan membuang baris kosong
       const daftarNama = namaMasalText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
 
       if (daftarNama.length === 0) {
@@ -207,10 +238,9 @@
         return;
       }
 
-      // Kirim setiap nama ke database
       for (let i = 0; i < daftarNama.length; i++) {
         const nama = daftarNama[i];
-        const id = new Date().getTime() + i; // Memastikan ID unik tiap nama
+        const id = new Date().getTime() + i;
         const newItem = { id: id, desa: desa, rt: rt, nama: nama, status: "Belum" };
 
         try {
@@ -220,7 +250,6 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "add", ...newItem })
           });
-
           dbData.push(newItem);
         } catch (err) {
           console.error("Gagal menyimpan:", nama);
@@ -230,7 +259,6 @@
       populateDropdowns();
       filterData();
 
-      // Reset form
       document.getElementById('inputNamaMasal').value = "";
       document.getElementById('inputDesa').value = "";
       document.getElementById('inputRT').value = "";
@@ -239,6 +267,84 @@
       alert(`Berhasil menambahkan ${daftarNama.length} penerima hadiah!`);
       btnSimpan.innerText = "Simpan Semua Data";
       btnSimpan.disabled = false;
+    }
+
+    // Modal & Fungsi Edit Data
+    function openModalEdit(id) {
+      const item = dbData.find(d => d.id == id);
+      if(!item) return;
+
+      document.getElementById('editId').value = item.id;
+      document.getElementById('editNama').value = item.nama;
+      document.getElementById('editDesa').value = item.desa;
+      document.getElementById('editRT').value = item.rt;
+
+      document.getElementById('modalEdit').classList.remove('hidden');
+    }
+
+    function closeModalEdit() {
+      document.getElementById('modalEdit').classList.add('hidden');
+    }
+
+    async function simpanEdit() {
+      const id = document.getElementById('editId').value;
+      const nama = document.getElementById('editNama').value.trim();
+      const desa = document.getElementById('editDesa').value.trim();
+      const rt = document.getElementById('editRT').value.trim();
+
+      if(!nama || !desa || !rt) {
+        alert("Semua field harus diisi!");
+        return;
+      }
+
+      const btnSimpan = document.getElementById('btnSimpanEdit');
+      btnSimpan.innerText = "Menyimpan...";
+      btnSimpan.disabled = true;
+
+      const index = dbData.findIndex(item => item.id == id);
+      if(index !== -1) {
+        dbData[index].nama = nama;
+        dbData[index].desa = desa;
+        dbData[index].rt = rt;
+      }
+
+      populateDropdowns();
+      filterData();
+      closeModalEdit();
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "edit", id: id, nama: nama, desa: desa, rt: rt })
+        });
+      } catch (err) {
+        alert("Gagal memperbarui data ke server!");
+      } finally {
+        btnSimpan.innerText = "Simpan Perubahan";
+        btnSimpan.disabled = false;
+      }
+    }
+
+    // Fungsi Hapus Data
+    async function hapusPenerima(id, nama) {
+      if(!confirm(`Apakah Anda yakin ingin menghapus "${nama}" dari daftar?`)) return;
+
+      dbData = dbData.filter(item => item.id != id);
+      populateDropdowns();
+      filterData();
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "delete", id: id })
+        });
+      } catch (err) {
+        alert("Gagal menghapus data dari server!");
+      }
     }
 
     loadData();
