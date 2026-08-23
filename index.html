@@ -20,7 +20,7 @@
     <!-- Form Tambah Penerima Masal -->
     <div id="formTambah" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
       <h2 class="text-lg font-bold text-blue-800 mb-3">Form Input Penerima Masal</h2>
-      <form onsubmit="tambahPenerimaMasal(event)" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <form onsubmit="tambahPenerimaMasal(event)" class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nama Desa</label>
           <input type="text" id="inputDesa" required placeholder="Contoh: Sukamaju" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
@@ -29,20 +29,27 @@
           <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">RT / RW</label>
           <input type="text" id="inputRT" required placeholder="Contoh: RT 01" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
         </div>
-        <div class="md:col-span-2">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Pilihan Hadiah / Konsumsi</label>
+          <select id="inputJenis" required class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <option value="Nasi">🍚 Nasi</option>
+            <option value="Roti">🍞 Roti</option>
+          </select>
+        </div>
+        <div class="md:col-span-3">
           <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Daftar Nama Penerima (Satu nama per baris)</label>
           <textarea id="inputNamaMasal" rows="4" required placeholder="Budi Santoso&#10;Siti Rahma&#10;Ahmad Supardi" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
           <span class="text-xs text-gray-500">*Tekan Enter untuk memisahkan antar nama penerima.</span>
         </div>
-        <div class="md:col-span-2 flex justify-end gap-2 mt-2">
+        <div class="md:col-span-3 flex justify-end gap-2 mt-2">
           <button type="button" onclick="toggleForm()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md font-semibold text-sm">Batal</button>
           <button type="submit" id="btnSimpan" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-semibold text-sm">Simpan Semua Data</button>
         </div>
       </form>
     </div>
 
-    <!-- Filter Desa & RT -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <!-- Filter Desa, RT, dan Jenis -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div>
         <label class="block text-sm font-medium text-gray-700">Pilih Desa</label>
         <select id="selectDesa" onchange="filterData()" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
@@ -53,6 +60,14 @@
         <label class="block text-sm font-medium text-gray-700">Pilih RT</label>
         <select id="selectRT" onchange="filterData()" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
           <option value="">-- Semua RT --</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Pilih Jenis Hadiah</label>
+        <select id="selectJenis" onchange="filterData()" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+          <option value="">-- Semua Jenis (Nasi & Roti) --</option>
+          <option value="Nasi">🍚 Nasi</option>
+          <option value="Roti">🍞 Roti</option>
         </select>
       </div>
     </div>
@@ -68,12 +83,13 @@
             <th class="p-3">Nama Penerima</th>
             <th class="p-3">Desa</th>
             <th class="p-3">RT</th>
+            <th class="p-3">Jenis</th>
             <th class="p-3 text-center">Status Aksi</th>
             <th class="p-3 text-center">Kelola</th>
           </tr>
         </thead>
         <tbody id="penerimaTableBody">
-          <!-- Data dari Spreadsheet akan ditampilkan di sini -->
+          <!-- Data dari Spreadsheet akan masuk ke sini -->
         </tbody>
       </table>
     </div>
@@ -97,6 +113,13 @@
           <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">RT / RW</label>
           <input type="text" id="editRT" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
         </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Jenis Hadiah</label>
+          <select id="editJenis" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <option value="Nasi">🍚 Nasi</option>
+            <option value="Roti">🍞 Roti</option>
+          </select>
+        </div>
       </div>
       <div class="flex justify-end gap-2 mt-5">
         <button onclick="closeModalEdit()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-md font-semibold text-sm">Batal</button>
@@ -106,7 +129,7 @@
   </div>
 
   <script>
-    // URL API Google Apps Script milik Anda sudah otomatis terpasang di sini
+    // URL Web App Google Apps Script milik Anda
     const API_URL = "https://script.google.com/macros/s/AKfycbyVquBMWxrAEFN_tiDjFr1_Jhd8yvloAe7RrdtyCqX-gvTf5OXyUMnN0UgxI0FnvBMJ/exec"; 
     
     let dbData = [];
@@ -154,10 +177,12 @@
     function filterData() {
       const selectedDesa = document.getElementById('selectDesa').value;
       const selectedRT = document.getElementById('selectRT').value;
+      const selectedJenis = document.getElementById('selectJenis').value;
 
       const filtered = dbData.filter(item => {
         return (selectedDesa === "" || item.desa == selectedDesa) &&
-               (selectedRT === "" || item.rt == selectedRT);
+               (selectedRT === "" || item.rt == selectedRT) &&
+               (selectedJenis === "" || item.jenis == selectedJenis);
       });
 
       renderTable(filtered);
@@ -168,17 +193,24 @@
       tbody.innerHTML = "";
 
       if(data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">Data tidak ditemukan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">Data tidak ditemukan.</td></tr>`;
         return;
       }
 
       data.forEach(item => {
         const isChecked = item.status === "Sudah";
+        const badgeColor = item.jenis === "Roti" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800";
+        
         tbody.innerHTML += `
           <tr class="border-b hover:bg-gray-50">
             <td class="p-3 font-semibold">${item.nama}</td>
             <td class="p-3">${item.desa}</td>
             <td class="p-3">${item.rt}</td>
+            <td class="p-3">
+              <span class="px-2 py-1 rounded-full text-xs font-semibold ${badgeColor}">
+                ${item.jenis === "Roti" ? '🍞 Roti' : '🍚 Nasi'}
+              </span>
+            </td>
             <td class="p-3 text-center">
               <label class="inline-flex items-center cursor-pointer">
                 <input type="checkbox" ${isChecked ? "checked" : ""} 
@@ -227,6 +259,7 @@
 
       const desa = document.getElementById('inputDesa').value.trim();
       const rt = document.getElementById('inputRT').value.trim();
+      const jenis = document.getElementById('inputJenis').value;
       const namaMasalText = document.getElementById('inputNamaMasal').value;
 
       const daftarNama = namaMasalText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
@@ -241,7 +274,7 @@
       for (let i = 0; i < daftarNama.length; i++) {
         const nama = daftarNama[i];
         const id = new Date().getTime() + i;
-        const newItem = { id: id, desa: desa, rt: rt, nama: nama, status: "Belum" };
+        const newItem = { id: id, desa: desa, rt: rt, nama: nama, jenis: jenis, status: "Belum" };
 
         try {
           await fetch(API_URL, {
@@ -264,12 +297,11 @@
       document.getElementById('inputRT').value = "";
       toggleForm();
       
-      alert(`Berhasil menambahkan ${daftarNama.length} penerima hadiah!`);
+      alert(`Berhasil menambahkan ${daftarNama.length} penerima (${jenis})!`);
       btnSimpan.innerText = "Simpan Semua Data";
       btnSimpan.disabled = false;
     }
 
-    // Modal & Fungsi Edit Data
     function openModalEdit(id) {
       const item = dbData.find(d => d.id == id);
       if(!item) return;
@@ -278,6 +310,7 @@
       document.getElementById('editNama').value = item.nama;
       document.getElementById('editDesa').value = item.desa;
       document.getElementById('editRT').value = item.rt;
+      document.getElementById('editJenis').value = item.jenis || "Nasi";
 
       document.getElementById('modalEdit').classList.remove('hidden');
     }
@@ -291,6 +324,7 @@
       const nama = document.getElementById('editNama').value.trim();
       const desa = document.getElementById('editDesa').value.trim();
       const rt = document.getElementById('editRT').value.trim();
+      const jenis = document.getElementById('editJenis').value;
 
       if(!nama || !desa || !rt) {
         alert("Semua field harus diisi!");
@@ -306,6 +340,7 @@
         dbData[index].nama = nama;
         dbData[index].desa = desa;
         dbData[index].rt = rt;
+        dbData[index].jenis = jenis;
       }
 
       populateDropdowns();
@@ -317,7 +352,7 @@
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "edit", id: id, nama: nama, desa: desa, rt: rt })
+          body: JSON.stringify({ action: "edit", id: id, nama: nama, desa: desa, rt: rt, jenis: jenis })
         });
       } catch (err) {
         alert("Gagal memperbarui data ke server!");
@@ -327,7 +362,6 @@
       }
     }
 
-    // Fungsi Hapus Data
     async function hapusPenerima(id, nama) {
       if(!confirm(`Apakah Anda yakin ingin menghapus "${nama}" dari daftar?`)) return;
 
